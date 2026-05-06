@@ -2,16 +2,14 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
 
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) {
-  throw new Error("DATABASE_URL is not set");
-}
-
+// Defer URL validation until the first query so `next build` (which evaluates
+// modules without a runtime database) doesn't fail when DATABASE_URL is unset.
 const globalForDb = globalThis as unknown as {
   pgClient?: ReturnType<typeof postgres>;
 };
 
-const client = globalForDb.pgClient ?? postgres(databaseUrl, { max: 5 });
+const client =
+  globalForDb.pgClient ?? postgres(process.env.DATABASE_URL ?? "", { max: 5 });
 if (process.env.NODE_ENV !== "production") {
   globalForDb.pgClient = client;
 }
