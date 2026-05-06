@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { signIn } from "@/auth";
+import { auth, signIn } from "@/auth";
 import { SiteHeader } from "@/components/site-header";
 
 async function requestMagicLink(formData: FormData) {
@@ -11,7 +11,11 @@ async function requestMagicLink(formData: FormData) {
   }
 
   try {
-    await signIn("resend", { email: raw, redirect: false });
+    await signIn("resend", {
+      email: raw,
+      redirect: false,
+      redirectTo: "/directory",
+    });
   } catch {
     // Anti-enumeration: never leak whether the email is on the invite list.
   }
@@ -23,6 +27,10 @@ export default async function SignInPage({
 }: {
   searchParams: Promise<{ sent?: string; error?: string }>;
 }) {
+  const session = await auth();
+  if (session?.user) {
+    redirect("/directory");
+  }
   const { sent, error } = await searchParams;
 
   return (
