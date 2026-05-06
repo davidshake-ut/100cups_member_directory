@@ -1,24 +1,26 @@
-# 100 Cups Member Directory
+# 100 Cups Mastermind Directory
 
-A simple member directory app for the 100 Cups community.
+A private, invite-only member directory for the 100 Cups Mastermind community. Members sign in with a magic link, view each other's profiles, and edit their own.
 
-## Overview
+## Stack
 
-The 100 Cups Member Directory is designed to help members easily find, connect with, and learn more about other people in the community.
+- Next.js 16 (App Router) + TypeScript + Tailwind v4
+- Postgres on Railway, accessed via Drizzle ORM
+- Auth.js v5 magic-link auth (via Resend)
+- Cloudflare R2 for profile photos (S3 SDK)
+- Deployed on Railway from GitHub
 
-The goal is to make networking simpler by keeping member information organized in one place.
+## Local development
 
-## Features
+```bash
+npm install
+cp .env.example .env.local
+# fill in .env.local with your credentials
+npm run dev
+```
 
-- View a directory of members
-- Search or browse member profiles
-- Store basic member information
-- Support easier follow-up and relationship building
+Open http://localhost:3000.
 
-## Project Status
+## Status
 
-This project is currently in early development.
-
-## Getting Started
-
-Clone the repository:
+Early development. See commit history for what's wired up so far.
