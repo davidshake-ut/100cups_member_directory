@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { db } from "@/db/client";
 import { profiles, users } from "@/db/schema";
 import { SiteHeader } from "@/components/site-header";
+import { publicPhotoUrl } from "@/lib/r2";
 
 export const dynamic = "force-dynamic";
 
@@ -45,12 +46,22 @@ function MemberCard({ row, isSelf }: { row: MemberRow; isSelf: boolean }) {
       profile.linkedinUrl,
       profile.websiteUrl,
     ].some((v) => v?.trim());
+  const photoUrl = publicPhotoUrl(profile?.photoKey);
 
   return (
     <article className="rounded-2xl border border-border/70 bg-card p-6 transition-colors hover:border-accent/40">
       <div className="flex items-start gap-4">
-        <div className="flex h-14 w-14 flex-none items-center justify-center rounded-full bg-accent/15 font-display text-lg text-accent">
-          {initialsFor(row)}
+        <div className="flex h-14 w-14 flex-none items-center justify-center overflow-hidden rounded-full bg-accent/15 font-display text-lg text-accent">
+          {photoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={photoUrl}
+              alt={`${displayNameFor(row)} profile photo`}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            initialsFor(row)
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <h2 className="font-display text-xl tracking-tight">
