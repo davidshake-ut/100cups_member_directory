@@ -4,6 +4,7 @@ import { auth, signOut } from "@/auth";
 export async function SiteHeader() {
   const session = await auth();
   const signedIn = !!session?.user;
+  const isAdmin = session?.user?.role === "admin";
 
   return (
     <header className="border-b border-border/60 bg-background/80 backdrop-blur sticky top-0 z-30">
@@ -20,6 +21,14 @@ export async function SiteHeader() {
           >
             Directory
           </Link>
+          {isAdmin ? (
+            <Link
+              href="/admin/invites"
+              className="hover:text-foreground transition-colors"
+            >
+              Invites
+            </Link>
+          ) : null}
           {signedIn ? (
             <form
               action={async () => {
