@@ -6,139 +6,14 @@ import { db } from "@/db/client";
 import { profiles, users } from "@/db/schema";
 import { SiteHeader } from "@/components/site-header";
 import { publicPhotoUrl } from "@/lib/r2";
+import { DirectoryGrid, type DirectoryEntry } from "./directory-grid";
 
 export const dynamic = "force-dynamic";
 
-type MemberRow = {
-  user: { id: string; name: string | null; email: string };
-  profile: typeof profiles.$inferSelect | null;
-};
-
-function initialsFor(row: MemberRow): string {
-  const source =
-    row.profile?.displayName?.trim() ||
-    row.user.name?.trim() ||
-    row.user.email;
-  const parts = source.split(/[\s@.]+/).filter(Boolean);
+function initialsFromText(text: string): string {
+  const parts = text.split(/[\s@.]+/).filter(Boolean);
   const letters = (parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "");
-  return letters.toUpperCase() || source[0]?.toUpperCase() || "?";
-}
-
-function displayNameFor(row: MemberRow): string {
-  return (
-    row.profile?.displayName?.trim() ||
-    row.user.name?.trim() ||
-    row.user.email.split("@")[0]
-  );
-}
-
-function MemberCard({ row, isSelf }: { row: MemberRow; isSelf: boolean }) {
-  const { profile } = row;
-  const hasAnyProfile =
-    profile &&
-    [
-      profile.headline,
-      profile.bio,
-      profile.whatIDo,
-      profile.idealClient,
-      profile.company,
-      profile.city,
-      profile.linkedinUrl,
-      profile.websiteUrl,
-    ].some((v) => v?.trim());
-  const photoUrl = publicPhotoUrl(profile?.photoKey);
-
-  return (
-    <article className="rounded-2xl border border-border/70 bg-card p-6 transition-colors hover:border-accent/40">
-      <div className="flex items-start gap-4">
-        <div className="flex h-14 w-14 flex-none items-center justify-center overflow-hidden rounded-full bg-accent/15 font-display text-lg text-accent">
-          {photoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={photoUrl}
-              alt={`${displayNameFor(row)} profile photo`}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            initialsFor(row)
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <h2 className="font-display text-xl tracking-tight">
-            {displayNameFor(row)}
-            {isSelf ? (
-              <span className="ml-2 align-middle text-xs font-normal text-muted">
-                (you)
-              </span>
-            ) : null}
-          </h2>
-          {profile?.headline ? (
-            <p className="mt-1 text-sm text-muted">{profile.headline}</p>
-          ) : null}
-          {profile?.company || profile?.city ? (
-            <p className="mt-1 text-xs text-muted">
-              {[profile.company, profile.city].filter(Boolean).join(" · ")}
-            </p>
-          ) : null}
-        </div>
-      </div>
-
-      {profile?.bio ? (
-        <p className="mt-5 text-sm leading-relaxed">{profile.bio}</p>
-      ) : null}
-
-      {profile?.whatIDo ? (
-        <div className="mt-5 border-t border-border/60 pt-4">
-          <p className="text-xs uppercase tracking-[0.18em] text-accent">
-            What I do
-          </p>
-          <p className="mt-2 text-sm leading-relaxed">{profile.whatIDo}</p>
-        </div>
-      ) : null}
-
-      {profile?.idealClient ? (
-        <div className="mt-4 border-t border-border/60 pt-4">
-          <p className="text-xs uppercase tracking-[0.18em] text-accent">
-            Looking for intros to
-          </p>
-          <p className="mt-2 text-sm leading-relaxed">{profile.idealClient}</p>
-        </div>
-      ) : null}
-
-      {profile?.linkedinUrl || profile?.websiteUrl ? (
-        <div className="mt-5 flex gap-3 text-sm">
-          {profile.linkedinUrl ? (
-            <a
-              href={profile.linkedinUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="text-accent hover:text-accent-hover"
-            >
-              LinkedIn ↗
-            </a>
-          ) : null}
-          {profile.websiteUrl ? (
-            <a
-              href={profile.websiteUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="text-accent hover:text-accent-hover"
-            >
-              Website ↗
-            </a>
-          ) : null}
-        </div>
-      ) : null}
-
-      {!hasAnyProfile ? (
-        <p className="mt-5 text-sm italic text-muted">
-          {isSelf
-            ? "You haven't filled in your profile yet."
-            : "Hasn't added profile details yet."}
-        </p>
-      ) : null}
-    </article>
-  );
+  return letters.toUpperCase() || text[0]?.toUpperCase() || "?";
 }
 
 export default async function DirectoryPage() {
@@ -158,6 +33,44 @@ export default async function DirectoryPage() {
 
   const currentUserId = session.user.id;
 
+  const entries: DirectoryEntry[] = rows.map((row) => {
+    const displayName =
+      row.profile?.displayName?.trim() ||
+      row.user.name?.trim() ||
+      row.user.email.split("@")[0];
+    const initialsSource =
+      row.profile?.displayName?.trim() ||
+      row.user.name?.trim() ||
+      row.user.email;
+    return {
+      id: row.user.id,
+      isSelf: row.user.id === currentUserId,
+      photoUrl: publicPhotoUrl(row.profile?.photoKey),
+      displayName,
+      initials: initialsFromText(initialsSource),
+      headline: row.profile?.headline ?? null,
+      company: row.profile?.company ?? null,
+      city: row.profile?.city ?? null,
+      bio: row.profile?.bio ?? null,
+      whatIDo: row.profile?.whatIDo ?? null,
+      idealClient: row.profile?.idealClient ?? null,
+      linkedinUrl: row.profile?.linkedinUrl ?? null,
+      websiteUrl: row.profile?.websiteUrl ?? null,
+      searchHaystack: [
+        displayName,
+        row.profile?.headline,
+        row.profile?.company,
+        row.profile?.city,
+        row.profile?.bio,
+        row.profile?.whatIDo,
+        row.profile?.idealClient,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase(),
+    };
+  });
+
   return (
     <>
       <SiteHeader />
@@ -170,26 +83,13 @@ export default async function DirectoryPage() {
             Who&apos;s in the room.
           </h1>
           <p className="mt-4 max-w-xl text-muted">
-            {rows.length} {rows.length === 1 ? "member" : "members"}. Browse,
-            then ask the group for an intro to anyone you&apos;d like to talk
-            to.
+            Browse, search by what someone does or is looking for, then ask the
+            group for an intro.
           </p>
         </section>
 
         <section className="mx-auto max-w-6xl px-6 pb-24">
-          {rows.length === 0 ? (
-            <p className="text-muted">No members yet.</p>
-          ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {rows.map((row) => (
-                <MemberCard
-                  key={row.user.id}
-                  row={row}
-                  isSelf={row.user.id === currentUserId}
-                />
-              ))}
-            </div>
-          )}
+          <DirectoryGrid entries={entries} />
 
           <p className="mt-12 text-sm text-muted">
             <Link href="/profile" className="text-accent hover:text-accent-hover">
