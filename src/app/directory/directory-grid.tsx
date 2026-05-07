@@ -16,6 +16,7 @@ export type DirectoryEntry = {
   idealClient: string | null;
   linkedinUrl: string | null;
   websiteUrl: string | null;
+  calendarUrl: string | null;
   searchHaystack: string;
 };
 
@@ -28,7 +29,8 @@ function MemberCard({ entry }: { entry: DirectoryEntry }) {
     !!entry.company ||
     !!entry.city ||
     !!entry.linkedinUrl ||
-    !!entry.websiteUrl;
+    !!entry.websiteUrl ||
+    !!entry.calendarUrl;
 
   return (
     <article className="rounded-2xl border border-border/70 bg-card p-6 transition-colors hover:border-accent/40">
@@ -87,8 +89,18 @@ function MemberCard({ entry }: { entry: DirectoryEntry }) {
         </div>
       ) : null}
 
-      {entry.linkedinUrl || entry.websiteUrl ? (
-        <div className="mt-5 flex gap-3 text-sm">
+      {entry.linkedinUrl || entry.websiteUrl || entry.calendarUrl ? (
+        <div className="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+          {entry.calendarUrl ? (
+            <a
+              href={entry.calendarUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-accent hover:text-accent-hover"
+            >
+              Book a call ↗
+            </a>
+          ) : null}
           {entry.linkedinUrl ? (
             <a
               href={entry.linkedinUrl}

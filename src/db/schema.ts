@@ -85,6 +85,7 @@ export const profiles = pgTable("profiles", {
   idealClient: text("ideal_client"),
   linkedinUrl: text("linkedin_url"),
   websiteUrl: text("website_url"),
+  calendarUrl: text("calendar_url"),
   photoKey: text("photo_key"),
   createdAt: timestamp("created_at", {
     mode: "date",

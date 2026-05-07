@@ -21,6 +21,7 @@ const FIELD_LIMITS = {
   idealClient: 1000,
   linkedinUrl: 256,
   websiteUrl: 256,
+  calendarUrl: 256,
 } as const;
 
 type FieldKey = keyof typeof FIELD_LIMITS;
@@ -76,6 +77,7 @@ async function saveProfileText(formData: FormData) {
     idealClient: readField(formData, "idealClient"),
     linkedinUrl: normalizeUrl(readField(formData, "linkedinUrl")),
     websiteUrl: normalizeUrl(readField(formData, "websiteUrl")),
+    calendarUrl: normalizeUrl(readField(formData, "calendarUrl")),
     updatedAt: new Date(),
   };
 
@@ -94,6 +96,7 @@ async function saveProfileText(formData: FormData) {
         idealClient: values.idealClient,
         linkedinUrl: values.linkedinUrl,
         websiteUrl: values.websiteUrl,
+        calendarUrl: values.calendarUrl,
         updatedAt: values.updatedAt,
       },
     });
@@ -435,6 +438,14 @@ export default async function ProfilePage({
                 type="url"
               />
             </div>
+
+            <Field
+              label="Calendar / booking link"
+              name="calendarUrl"
+              defaultValue={existing?.calendarUrl ?? null}
+              type="url"
+              hint="Calendly, SavvyCal, Cal.com — wherever members can book time with you"
+            />
 
             <div className="mt-2">
               <button

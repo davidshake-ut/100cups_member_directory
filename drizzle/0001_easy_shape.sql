@@ -1,0 +1,1 @@
+ALTER TABLE "profiles" ADD COLUMN "calendar_url" text;

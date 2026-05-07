@@ -56,6 +56,7 @@ export default async function DirectoryPage() {
       idealClient: row.profile?.idealClient ?? null,
       linkedinUrl: row.profile?.linkedinUrl ?? null,
       websiteUrl: row.profile?.websiteUrl ?? null,
+      calendarUrl: row.profile?.calendarUrl ?? null,
       searchHaystack: [
         displayName,
         row.profile?.headline,
