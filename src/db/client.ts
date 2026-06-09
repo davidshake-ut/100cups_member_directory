@@ -9,7 +9,7 @@ const globalForDb = globalThis as unknown as {
 };
 
 const client =
-  globalForDb.pgClient ?? postgres(process.env.DATABASE_URL ?? "", { max: 5 });
+  globalForDb.pgClient ?? postgres(process.env.POSTGRES_URL ?? process.env.DATABASE_URL ?? "", { max: 5 });
 if (process.env.NODE_ENV !== "production") {
   globalForDb.pgClient = client;
 }
