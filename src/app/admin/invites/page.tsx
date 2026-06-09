@@ -2,19 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { desc, eq } from "drizzle-orm";
-import { auth, signIn } from "@/auth";
+import { auth } from "@/auth";
 import { db } from "@/db/client";
 import { invites, users } from "@/db/schema";
 import { SiteHeader } from "@/components/site-header";
-
-async function sendInviteEmail(email: string): Promise<boolean> {
-  try {
-    await signIn("resend", { email, redirect: false });
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 export const dynamic = "force-dynamic";
 
@@ -53,11 +44,8 @@ async function addInvite(formData: FormData) {
         .update(invites)
         .set({ revokedAt: null })
         .where(eq(invites.id, existing.id));
-      const sent = await sendInviteEmail(email);
       revalidatePath("/admin/invites");
-      redirect(
-        `/admin/invites?reactivated=${encodeURIComponent(email)}${sent ? "" : "&emailFailed=1"}`,
-      );
+      redirect(`/admin/invites?reactivated=${encodeURIComponent(email)}`);
     }
     redirect(`/admin/invites?error=duplicate&email=${encodeURIComponent(email)}`);
   }
@@ -67,11 +55,8 @@ async function addInvite(formData: FormData) {
     invitedByUserId: admin.id,
   });
 
-  const sent = await sendInviteEmail(email);
   revalidatePath("/admin/invites");
-  redirect(
-    `/admin/invites?added=${encodeURIComponent(email)}${sent ? "" : "&emailFailed=1"}`,
-  );
+  redirect(`/admin/invites?added=${encodeURIComponent(email)}`);
 }
 
 async function revokeInvite(formData: FormData) {
@@ -95,19 +80,13 @@ async function reactivateInvite(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) redirect("/admin/invites");
 
-  const [row] = await db
+  await db
     .update(invites)
     .set({ revokedAt: null })
-    .where(eq(invites.id, id))
-    .returning({ email: invites.email });
-
-  let sent = true;
-  if (row?.email) {
-    sent = await sendInviteEmail(row.email);
-  }
+    .where(eq(invites.id, id));
 
   revalidatePath("/admin/invites");
-  redirect(`/admin/invites?reactivated=1${sent ? "" : "&emailFailed=1"}`);
+  redirect("/admin/invites?reactivated=1");
 }
 
 const dateFormatter = new Intl.DateTimeFormat("en-GB", {
@@ -150,7 +129,6 @@ export default async function AdminInvitesPage({
     reactivated?: string;
     error?: string;
     email?: string;
-    emailFailed?: string;
   }>;
 }) {
   await requireAdmin();
@@ -166,20 +144,15 @@ export default async function AdminInvitesPage({
     .orderBy(desc(invites.createdAt));
 
   let banner: { tone: "ok" | "error"; message: string } | null = null;
-  const emailSuffix = sp.emailFailed
-    ? " (couldn't send email — check Resend setup)"
-    : " — magic-link email sent.";
   if (sp.added) {
-    banner = {
-      tone: sp.emailFailed ? "error" : "ok",
-      message: `Invite added for ${sp.added}${emailSuffix}`,
-    };
+    banner = { tone: "ok", message: `Invite added for ${sp.added}.` };
   } else if (sp.reactivated) {
-    const target =
-      sp.reactivated === "1" ? "Invite reactivated" : `Invite reactivated for ${sp.reactivated}`;
     banner = {
-      tone: sp.emailFailed ? "error" : "ok",
-      message: `${target}${emailSuffix}`,
+      tone: "ok",
+      message:
+        sp.reactivated === "1"
+          ? "Invite reactivated."
+          : `Invite reactivated for ${sp.reactivated}.`,
     };
   } else if (sp.revoked === "1") {
     banner = { tone: "ok", message: "Invite revoked." };
@@ -342,9 +315,8 @@ export default async function AdminInvitesPage({
           </div>
 
           <p className="mt-10 text-xs text-muted">
-            Adding or reactivating an invite automatically emails a magic-link
-            sign-in to that address. Resend must be configured with a verified
-            domain for this to actually deliver.
+            The invite list is no longer used for access control — it&apos;s
+            kept as a record of who was added and when.
           </p>
         </section>
       </main>
