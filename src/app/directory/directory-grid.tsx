@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useDeferredValue, useMemo, useState } from "react";
+import { Pencil, PlusCircle } from "lucide-react";
 
 export type DirectoryEntry = {
   id: string;
@@ -33,7 +35,16 @@ function MemberCard({ entry }: { entry: DirectoryEntry }) {
     !!entry.calendarUrl;
 
   return (
-    <article className="rounded-2xl border border-border/70 bg-card p-6 transition-colors hover:border-accent/40">
+    <article className="group relative rounded-2xl border border-border/70 bg-card p-6 transition-colors hover:border-accent/40">
+      <Link
+        href={`/api/profile-context?userId=${entry.id}`}
+        title="Edit profile"
+        className="absolute right-4 top-4 rounded-full p-1.5 text-muted opacity-0 transition-opacity hover:text-accent group-hover:opacity-100"
+      >
+        <Pencil size={14} />
+        <span className="sr-only">Edit {entry.displayName}&apos;s profile</span>
+      </Link>
+
       <div className="flex items-start gap-4">
         <div className="flex h-14 w-14 flex-none items-center justify-center overflow-hidden rounded-full bg-accent/15 font-display text-lg text-accent">
           {entry.photoUrl ? (
@@ -47,14 +58,9 @@ function MemberCard({ entry }: { entry: DirectoryEntry }) {
             entry.initials
           )}
         </div>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 pr-6">
           <h2 className="font-display text-xl tracking-tight">
             {entry.displayName}
-            {entry.isSelf ? (
-              <span className="ml-2 align-middle text-xs font-normal text-muted">
-                (you)
-              </span>
-            ) : null}
           </h2>
           {entry.headline ? (
             <p className="mt-1 text-sm text-muted">{entry.headline}</p>
@@ -126,9 +132,7 @@ function MemberCard({ entry }: { entry: DirectoryEntry }) {
 
       {!hasAnyProfile ? (
         <p className="mt-5 text-sm italic text-muted">
-          {entry.isSelf
-            ? "You haven't filled in your profile yet."
-            : "Hasn't added profile details yet."}
+          Hasn&apos;t added profile details yet.
         </p>
       ) : null}
     </article>
@@ -147,8 +151,8 @@ export function DirectoryGrid({ entries }: { entries: DirectoryEntry[] }) {
 
   return (
     <>
-      <div className="mb-8">
-        <label className="block">
+      <div className="mb-8 flex items-center gap-3">
+        <label className="block flex-1">
           <span className="sr-only">Search the directory</span>
           <input
             type="search"
@@ -158,12 +162,21 @@ export function DirectoryGrid({ entries }: { entries: DirectoryEntry[] }) {
             className="h-12 w-full rounded-full border border-border bg-card px-5 text-base outline-none focus:border-accent"
           />
         </label>
-        <p className="mt-2 text-xs text-muted">
-          {filtered.length === entries.length
-            ? `${entries.length} ${entries.length === 1 ? "member" : "members"}`
-            : `${filtered.length} of ${entries.length} ${entries.length === 1 ? "member" : "members"}`}
-        </p>
+        <Link
+          href="/api/profile-context?new=1"
+          title="Add your profile"
+          className="flex h-12 w-12 flex-none items-center justify-center rounded-full border border-border bg-card text-muted transition-colors hover:border-accent hover:text-accent"
+        >
+          <PlusCircle size={20} />
+          <span className="sr-only">Add your profile</span>
+        </Link>
       </div>
+
+      <p className="mb-6 text-xs text-muted">
+        {filtered.length === entries.length
+          ? `${entries.length} ${entries.length === 1 ? "member" : "members"}`
+          : `${filtered.length} of ${entries.length} ${entries.length === 1 ? "member" : "members"}`}
+      </p>
 
       {filtered.length === 0 ? (
         <p className="rounded-2xl border border-border/70 bg-card p-6 text-sm text-muted">
