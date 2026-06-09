@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #f5f1ed;
+  --color-background: #eceae6;
   --color-foreground: #2c2c2c;
   --color-card: #ffffff;
-  --color-accent: #b8845a;
-  --color-accent-hover: #9d6f47;
+  --color-accent: #3d2010;
+  --color-accent-hover: #5a3018;
   --color-muted: #7a7268;
-  --color-border: #e5ddd3;
+  --color-border: #d8d4ce;
 
   --font-sans: var(--font-montserrat);
   --font-mono: var(--font-montserrat);
