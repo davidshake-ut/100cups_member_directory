@@ -11,7 +11,7 @@ const montserrat = Montserrat({
 export const metadata: Metadata = {
   title: "100 Cups Mastermind Directory",
   description:
-    "A private member directory for the 100 Cups Mastermind community.",
+    "Browse members of the 100 Cups Mastermind community, see what they do, and find your next introduction.",
 };
 
 export default function RootLayout({

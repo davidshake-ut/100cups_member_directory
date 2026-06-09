@@ -38,23 +38,18 @@ export default async function SignInPage({
       <SiteHeader />
       <main className="flex-1">
         <section className="mx-auto max-w-md px-6 pt-20 pb-16 sm:pt-28">
-          <p className="mb-6 text-sm uppercase tracking-[0.2em] text-accent">
-            Members only
-          </p>
           <h1 className="font-display text-4xl leading-[1.1] tracking-tight sm:text-5xl">
             Sign in.
           </h1>
           <p className="mt-4 text-muted">
-            Enter the email address you were invited with. We&apos;ll send a
-            one-time link.
+            Enter your email and we&apos;ll send a one-time sign-in link.
           </p>
 
           {sent ? (
             <div className="mt-10 rounded-2xl border border-border/60 bg-card p-6">
               <p className="font-display text-xl">Check your inbox.</p>
               <p className="mt-2 text-sm text-muted">
-                If your email is on the invite list, a sign-in link is on its
-                way. The link expires in 24 hours.
+                A sign-in link is on its way. The link expires in 24 hours.
               </p>
               <Link
                 href="/signin"
@@ -91,7 +86,7 @@ export default async function SignInPage({
           )}
 
           <p className="mt-10 text-sm text-muted">
-            Not a member yet? Access is invite-only — ask the group organizer.
+            Sign in to add or edit your profile in the directory.
           </p>
         </section>
       </main>

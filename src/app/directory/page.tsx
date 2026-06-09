@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db/client";
@@ -18,9 +17,6 @@ function initialsFromText(text: string): string {
 
 export default async function DirectoryPage() {
   const session = await auth();
-  if (!session?.user) {
-    redirect("/signin");
-  }
 
   const rows = await db
     .select({
@@ -31,7 +27,7 @@ export default async function DirectoryPage() {
     .leftJoin(profiles, eq(profiles.userId, users.id))
     .orderBy(users.email);
 
-  const currentUserId = session.user.id;
+  const currentUserId = session?.user?.id ?? null;
 
   const entries: DirectoryEntry[] = rows.map((row) => {
     const displayName =

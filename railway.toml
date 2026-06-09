@@ -1,0 +1,12 @@
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+# Run any pending migrations before starting the server.
+# drizzle-kit checks the __drizzle_migrations table and skips already-applied
+# migrations, so this is safe to re-run on every deploy / restart.
+startCommand = "npm run db:migrate && npm run start"
+healthcheckPath = "/"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
