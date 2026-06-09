@@ -8,6 +8,7 @@ import { db } from "@/db/client";
 import { profiles, users } from "@/db/schema";
 import { SiteHeader } from "@/components/site-header";
 import { deletePhoto, publicPhotoUrl, uploadPhoto } from "@/lib/r2";
+import { DeleteProfileSection } from "./delete-section";
 
 export const dynamic = "force-dynamic";
 
@@ -509,6 +510,8 @@ export default async function ProfilePage({
               </button>
             </div>
           </form>
+
+          <DeleteProfileSection />
         </section>
       </main>
     </>
