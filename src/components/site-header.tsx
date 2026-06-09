@@ -1,11 +1,6 @@
 import Link from "next/link";
-import { auth, signOut } from "@/auth";
 
-export async function SiteHeader() {
-  const session = await auth();
-  const signedIn = !!session?.user;
-  const isAdmin = session?.user?.role === "admin";
-
+export function SiteHeader() {
   return (
     <header className="border-b border-border/60 bg-background/80 backdrop-blur sticky top-0 z-30">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
@@ -21,36 +16,6 @@ export async function SiteHeader() {
           >
             Directory
           </Link>
-          {isAdmin ? (
-            <Link
-              href="/admin/invites"
-              className="hover:text-foreground transition-colors"
-            >
-              Invites
-            </Link>
-          ) : null}
-          {signedIn ? (
-            <form
-              action={async () => {
-                "use server";
-                await signOut({ redirectTo: "/" });
-              }}
-            >
-              <button
-                type="submit"
-                className="rounded-full border border-foreground/15 px-4 py-1.5 text-foreground hover:bg-foreground hover:text-background transition-colors"
-              >
-                Sign out
-              </button>
-            </form>
-          ) : (
-            <Link
-              href="/signin"
-              className="rounded-full border border-foreground/15 px-4 py-1.5 text-foreground hover:bg-foreground hover:text-background transition-colors"
-            >
-              Sign in
-            </Link>
-          )}
         </nav>
       </div>
     </header>

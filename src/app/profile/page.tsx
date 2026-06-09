@@ -2,10 +2,10 @@ import { randomBytes } from "node:crypto";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
-import { auth } from "@/auth";
 import { db } from "@/db/client";
-import { profiles } from "@/db/schema";
+import { profiles, users } from "@/db/schema";
 import { SiteHeader } from "@/components/site-header";
 import { deletePhoto, publicPhotoUrl, uploadPhoto } from "@/lib/r2";
 
@@ -40,6 +40,32 @@ const PHOTO_EXTS: Record<string, string> = {
 };
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
+async function getProfileUserId(): Promise<string | null> {
+  const store = await cookies();
+  return store.get("profile_user_id")?.value ?? null;
+}
+
+async function identifyUser(formData: FormData) {
+  "use server";
+  const raw = String(formData.get("email") ?? "").trim().toLowerCase();
+  if (!raw || !raw.includes("@")) redirect("/profile?error=invalid");
+
+  let user = await db.query.users.findFirst({ where: eq(users.email, raw) });
+  if (!user) {
+    const [created] = await db.insert(users).values({ email: raw }).returning();
+    user = created;
+  }
+
+  const store = await cookies();
+  store.set("profile_user_id", user.id, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+  redirect("/profile");
+}
+
 function readField(formData: FormData, key: FieldKey): string | null {
   const raw = formData.get(key);
   if (typeof raw !== "string") return null;
@@ -61,13 +87,11 @@ function initialsFromText(text: string): string {
 
 async function saveProfileText(formData: FormData) {
   "use server";
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/signin");
-  }
+  const userId = await getProfileUserId();
+  if (!userId) redirect("/profile");
 
   const values = {
-    userId: session.user.id,
+    userId,
     displayName: readField(formData, "displayName"),
     headline: readField(formData, "headline"),
     company: readField(formData, "company"),
@@ -108,10 +132,8 @@ async function saveProfileText(formData: FormData) {
 
 async function uploadPhotoAction(formData: FormData) {
   "use server";
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/signin");
-  }
+  const userId = await getProfileUserId();
+  if (!userId) redirect("/profile");
 
   const file = formData.get("photo");
   if (!(file instanceof File) || file.size === 0) {
@@ -125,10 +147,10 @@ async function uploadPhotoAction(formData: FormData) {
   }
 
   const ext = PHOTO_EXTS[file.type] ?? "bin";
-  const key = `profiles/${session.user.id}/${randomBytes(16).toString("hex")}.${ext}`;
+  const key = `profiles/${userId}/${randomBytes(16).toString("hex")}.${ext}`;
 
   const existing = await db.query.profiles.findFirst({
-    where: eq(profiles.userId, session.user.id),
+    where: eq(profiles.userId, userId),
   });
 
   const buffer = Buffer.from(await file.arrayBuffer());
@@ -137,7 +159,7 @@ async function uploadPhotoAction(formData: FormData) {
   await db
     .insert(profiles)
     .values({
-      userId: session.user.id,
+      userId,
       photoKey: key,
       updatedAt: new Date(),
     })
@@ -161,13 +183,11 @@ async function uploadPhotoAction(formData: FormData) {
 
 async function removePhotoAction() {
   "use server";
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/signin");
-  }
+  const userId = await getProfileUserId();
+  if (!userId) redirect("/profile");
 
   const existing = await db.query.profiles.findFirst({
-    where: eq(profiles.userId, session.user.id),
+    where: eq(profiles.userId, userId),
   });
 
   if (existing?.photoKey) {
@@ -179,7 +199,7 @@ async function removePhotoAction() {
     await db
       .update(profiles)
       .set({ photoKey: null, updatedAt: new Date() })
-      .where(eq(profiles.userId, session.user.id));
+      .where(eq(profiles.userId, userId));
   }
 
   revalidatePath("/profile");
@@ -253,24 +273,57 @@ const PHOTO_BANNERS: Record<string, { tone: "ok" | "error"; message: string }> =
 export default async function ProfilePage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string; photo?: string }>;
+  searchParams: Promise<{ saved?: string; photo?: string; error?: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/signin");
+  const userId = await getProfileUserId();
+  const { saved, photo, error } = await searchParams;
+
+  if (!userId) {
+    return (
+      <>
+        <SiteHeader />
+        <main className="flex-1">
+          <section className="mx-auto max-w-md px-6 pt-20 pb-16 sm:pt-28">
+            <h1 className="font-display text-4xl leading-[1.1] tracking-tight sm:text-5xl">
+              Your profile.
+            </h1>
+            <p className="mt-4 text-muted">
+              Enter your email to create or edit your profile in the directory.
+            </p>
+            <form action={identifyUser} className="mt-10 flex flex-col gap-4">
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-medium">Email</span>
+                <input
+                  type="email"
+                  name="email"
+                  autoComplete="email"
+                  required
+                  placeholder="you@example.com"
+                  className="h-12 rounded-full border border-border bg-card px-5 text-base outline-none focus:border-accent"
+                />
+              </label>
+              {error === "invalid" && (
+                <p className="text-sm text-red-700">Please enter a valid email address.</p>
+              )}
+              <button
+                type="submit"
+                className="inline-flex h-12 items-center justify-center rounded-full bg-foreground px-8 text-sm font-medium text-background transition-colors hover:bg-accent-hover"
+              >
+                Continue
+              </button>
+            </form>
+          </section>
+        </main>
+      </>
+    );
   }
-  const { saved, photo } = await searchParams;
 
   const existing = await db.query.profiles.findFirst({
-    where: eq(profiles.userId, session.user.id),
+    where: eq(profiles.userId, userId),
   });
 
   const photoUrl = publicPhotoUrl(existing?.photoKey);
-  const initialsSource =
-    existing?.displayName?.trim() ||
-    session.user.name?.trim() ||
-    session.user.email ||
-    "?";
+  const initialsSource = existing?.displayName?.trim() || "?";
   const initials = initialsFromText(initialsSource);
   const photoBanner = photo ? PHOTO_BANNERS[photo] : null;
 
