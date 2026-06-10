@@ -46,26 +46,6 @@ async function getProfileUserId(): Promise<string | null> {
   return store.get("profile_user_id")?.value ?? null;
 }
 
-async function identifyUser(formData: FormData) {
-  "use server";
-  const raw = String(formData.get("email") ?? "").trim().toLowerCase();
-  if (!raw || !raw.includes("@")) redirect("/profile?error=invalid");
-
-  let user = await db.query.users.findFirst({ where: eq(users.email, raw) });
-  if (!user) {
-    const [created] = await db.insert(users).values({ email: raw }).returning();
-    user = created;
-  }
-
-  const store = await cookies();
-  store.set("profile_user_id", user.id, {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-  });
-  redirect("/profile");
-}
 
 function readField(formData: FormData, key: FieldKey): string | null {
   const raw = formData.get(key);
@@ -274,49 +254,24 @@ const PHOTO_BANNERS: Record<string, { tone: "ok" | "error"; message: string }> =
 export default async function ProfilePage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string; photo?: string; error?: string }>;
+  searchParams: Promise<{ saved?: string; photo?: string }>;
 }) {
   const userId = await getProfileUserId();
-  const { saved, photo, error } = await searchParams;
+  const { saved, photo } = await searchParams;
 
   if (!userId) {
-    return (
-      <>
-        <SiteHeader />
-        <main className="flex-1">
-          <section className="mx-auto max-w-md px-6 pt-20 pb-16 sm:pt-28">
-            <h1 className="font-display text-4xl leading-[1.1] tracking-tight sm:text-5xl">
-              Your profile.
-            </h1>
-            <p className="mt-4 text-muted">
-              Enter your email to create or edit your profile in the directory.
-            </p>
-            <form action={identifyUser} className="mt-10 flex flex-col gap-4">
-              <label className="flex flex-col gap-2">
-                <span className="text-sm font-medium">Email</span>
-                <input
-                  type="email"
-                  name="email"
-                  autoComplete="email"
-                  required
-                  placeholder="you@example.com"
-                  className="h-12 rounded-full border border-border bg-card px-5 text-base outline-none focus:border-accent"
-                />
-              </label>
-              {error === "invalid" && (
-                <p className="text-sm text-red-700">Please enter a valid email address.</p>
-              )}
-              <button
-                type="submit"
-                className="inline-flex h-12 items-center justify-center rounded-full bg-foreground px-8 text-sm font-medium text-background transition-colors hover:bg-accent-hover"
-              >
-                Continue
-              </button>
-            </form>
-          </section>
-        </main>
-      </>
-    );
+    const [newUser] = await db
+      .insert(users)
+      .values({ email: `guest_${randomBytes(8).toString("hex")}@local` })
+      .returning();
+    const store = await cookies();
+    store.set("profile_user_id", newUser.id, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+    });
+    redirect("/profile");
   }
 
   const existing = await db.query.profiles.findFirst({
