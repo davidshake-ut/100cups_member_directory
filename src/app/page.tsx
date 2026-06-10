@@ -16,16 +16,10 @@ export default function Home() {
             Find other members, see what they do, and discover who&apos;d love
             an introduction.
           </p>
-          <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-            <Link
-              href="/signin"
-              className="inline-flex h-12 items-center justify-center rounded-full bg-foreground px-8 text-sm font-medium text-background transition-colors hover:bg-accent-hover sm:w-auto"
-            >
-              Sign in with email
-            </Link>
+          <div className="mt-10">
             <Link
               href="/directory"
-              className="inline-flex h-12 items-center justify-center rounded-full border border-foreground/15 px-8 text-sm font-medium transition-colors hover:bg-foreground/5"
+              className="inline-flex h-12 items-center justify-center rounded-full bg-foreground px-8 text-sm font-medium text-background transition-colors hover:bg-accent-hover"
             >
               View directory
             </Link>
