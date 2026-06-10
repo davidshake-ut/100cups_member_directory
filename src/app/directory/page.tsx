@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { eq } from "drizzle-orm";
-import { auth } from "@/auth";
+import { cookies } from "next/headers";
 import { db } from "@/db/client";
 import { profiles, users } from "@/db/schema";
 import { SiteHeader } from "@/components/site-header";
@@ -16,7 +16,8 @@ function initialsFromText(text: string): string {
 }
 
 export default async function DirectoryPage() {
-  const session = await auth();
+  const store = await cookies();
+  const currentUserId = store.get("profile_user_id")?.value ?? null;
 
   const rows = await db
     .select({
@@ -26,8 +27,6 @@ export default async function DirectoryPage() {
     .from(users)
     .leftJoin(profiles, eq(profiles.userId, users.id))
     .orderBy(users.email);
-
-  const currentUserId = session?.user?.id ?? null;
 
   const entries: DirectoryEntry[] = rows.map((row) => {
     const displayName =
