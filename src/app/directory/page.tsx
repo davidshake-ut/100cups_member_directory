@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { eq } from "drizzle-orm";
+import { eq, isNotNull } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { db } from "@/db/client";
 import { profiles, users } from "@/db/schema";
@@ -25,7 +25,8 @@ export default async function DirectoryPage() {
       profile: profiles,
     })
     .from(users)
-    .leftJoin(profiles, eq(profiles.userId, users.id))
+    .innerJoin(profiles, eq(profiles.userId, users.id))
+    .where(isNotNull(profiles.displayName))
     .orderBy(users.email);
 
   const entries: DirectoryEntry[] = rows.map((row) => {
