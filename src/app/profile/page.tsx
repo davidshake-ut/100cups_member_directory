@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
-import { profiles, users } from "@/db/schema";
+import { profiles } from "@/db/schema";
 import { SiteHeader } from "@/components/site-header";
 import { deletePhoto, publicPhotoUrl, uploadPhoto } from "@/lib/r2";
 import { DeleteProfileSection } from "./delete-section";
@@ -259,20 +259,7 @@ export default async function ProfilePage({
   const userId = await getProfileUserId();
   const { saved, photo } = await searchParams;
 
-  if (!userId) {
-    const [newUser] = await db
-      .insert(users)
-      .values({ email: `guest_${randomBytes(8).toString("hex")}@local` })
-      .returning();
-    const store = await cookies();
-    store.set("profile_user_id", newUser.id, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 365,
-    });
-    redirect("/profile");
-  }
+  if (!userId) redirect("/directory");
 
   const existing = await db.query.profiles.findFirst({
     where: eq(profiles.userId, userId),
