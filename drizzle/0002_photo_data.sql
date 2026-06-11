@@ -1,1 +1,1 @@
-ALTER TABLE "profiles" ADD COLUMN "photo_data" text;
+ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "photo_data" text;
