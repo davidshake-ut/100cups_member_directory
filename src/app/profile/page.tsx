@@ -1,13 +1,12 @@
-import { randomBytes } from "node:crypto";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
+import sharp from "sharp";
 import { db } from "@/db/client";
 import { profiles } from "@/db/schema";
 import { SiteHeader } from "@/components/site-header";
-import { deletePhoto, publicPhotoUrl, uploadPhoto } from "@/lib/r2";
 import { DeleteProfileSection } from "./delete-section";
 
 export const dynamic = "force-dynamic";
@@ -33,12 +32,6 @@ const ALLOWED_PHOTO_TYPES = new Set([
   "image/webp",
   "image/gif",
 ]);
-const PHOTO_EXTS: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-  "image/gif": "gif",
-};
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
 async function getProfileUserId(): Promise<string | null> {
@@ -127,40 +120,26 @@ async function uploadPhotoAction(formData: FormData) {
     redirect("/profile?photo=not-image");
   }
 
-  const ext = PHOTO_EXTS[file.type] ?? "bin";
-  const key = `profiles/${userId}/${randomBytes(16).toString("hex")}.${ext}`;
-
-  const existing = await db.query.profiles.findFirst({
-    where: eq(profiles.userId, userId),
-  });
-
   const buffer = Buffer.from(await file.arrayBuffer());
+  let photoData: string;
   try {
-    await uploadPhoto(key, buffer, file.type);
+    const resized = await sharp(buffer)
+      .resize(512, 512, { fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 82 })
+      .toBuffer();
+    photoData = `data:image/webp;base64,${resized.toString("base64")}`;
   } catch (err) {
-    console.error("[photo-upload] R2 upload failed:", err);
+    console.error("[photo-upload] Image processing failed:", err);
     redirect("/profile?photo=upload-failed");
   }
 
   await db
     .insert(profiles)
-    .values({
-      userId,
-      photoKey: key,
-      updatedAt: new Date(),
-    })
+    .values({ userId, photoData, updatedAt: new Date() })
     .onConflictDoUpdate({
       target: profiles.userId,
-      set: { photoKey: key, updatedAt: new Date() },
+      set: { photoData, updatedAt: new Date() },
     });
-
-  if (existing?.photoKey && existing.photoKey !== key) {
-    try {
-      await deletePhoto(existing.photoKey);
-    } catch {
-      // best-effort cleanup; swallow errors
-    }
-  }
 
   revalidatePath("/profile");
   revalidatePath("/directory");
@@ -172,21 +151,10 @@ async function removePhotoAction() {
   const userId = await getProfileUserId();
   if (!userId) redirect("/profile");
 
-  const existing = await db.query.profiles.findFirst({
-    where: eq(profiles.userId, userId),
-  });
-
-  if (existing?.photoKey) {
-    try {
-      await deletePhoto(existing.photoKey);
-    } catch {
-      // best-effort
-    }
-    await db
-      .update(profiles)
-      .set({ photoKey: null, updatedAt: new Date() })
-      .where(eq(profiles.userId, userId));
-  }
+  await db
+    .update(profiles)
+    .set({ photoData: null, updatedAt: new Date() })
+    .where(eq(profiles.userId, userId));
 
   revalidatePath("/profile");
   revalidatePath("/directory");
@@ -274,7 +242,7 @@ export default async function ProfilePage({
     where: eq(profiles.userId, userId),
   });
 
-  const photoUrl = publicPhotoUrl(existing?.photoKey);
+  const photoUrl = existing?.photoData ?? null;
   const initialsSource = existing?.displayName?.trim() || "?";
   const initials = initialsFromText(initialsSource);
   const photoBanner = photo ? PHOTO_BANNERS[photo] : null;

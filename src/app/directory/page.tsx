@@ -4,7 +4,6 @@ import { cookies } from "next/headers";
 import { db } from "@/db/client";
 import { profiles, users } from "@/db/schema";
 import { SiteHeader } from "@/components/site-header";
-import { publicPhotoUrl } from "@/lib/r2";
 import { DirectoryGrid, type DirectoryEntry } from "./directory-grid";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +40,7 @@ export default async function DirectoryPage() {
     return {
       id: row.user.id,
       isSelf: row.user.id === currentUserId,
-      photoUrl: publicPhotoUrl(row.profile?.photoKey),
+      photoUrl: row.profile?.photoData ?? null,
       displayName,
       initials: initialsFromText(initialsSource),
       headline: row.profile?.headline ?? null,

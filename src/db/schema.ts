@@ -87,6 +87,7 @@ export const profiles = pgTable("profiles", {
   websiteUrl: text("website_url"),
   calendarUrl: text("calendar_url"),
   photoKey: text("photo_key"),
+  photoData: text("photo_data"),
   createdAt: timestamp("created_at", {
     mode: "date",
     withTimezone: true,
