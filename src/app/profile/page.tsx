@@ -3,10 +3,10 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
-import sharp from "sharp";
 import { db } from "@/db/client";
 import { profiles } from "@/db/schema";
 import { SiteHeader } from "@/components/site-header";
+import { PhotoUploadSection } from "./photo-upload";
 import { DeleteProfileSection } from "./delete-section";
 
 export const dynamic = "force-dynamic";
@@ -26,13 +26,8 @@ const FIELD_LIMITS = {
 
 type FieldKey = keyof typeof FIELD_LIMITS;
 
-const ALLOWED_PHOTO_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-]);
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+// ~2 MB ceiling on the base64 payload (covers 512×512 JPEG with headroom)
+const MAX_BASE64_LENGTH = 2 * 1024 * 1024;
 
 async function getProfileUserId(): Promise<string | null> {
   const store = await cookies();
@@ -109,28 +104,12 @@ async function uploadPhotoAction(formData: FormData) {
   const userId = await getProfileUserId();
   if (!userId) redirect("/profile");
 
-  const file = formData.get("photo");
-  if (!(file instanceof File) || file.size === 0) {
+  const photoData = formData.get("photoBase64");
+  if (typeof photoData !== "string" || !photoData.startsWith("data:image/")) {
     redirect("/profile?photo=missing");
   }
-  if (file.size > MAX_PHOTO_BYTES) {
+  if (photoData.length > MAX_BASE64_LENGTH) {
     redirect("/profile?photo=too-big");
-  }
-  if (!ALLOWED_PHOTO_TYPES.has(file.type)) {
-    redirect("/profile?photo=not-image");
-  }
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-  let photoData: string;
-  try {
-    const resized = await sharp(buffer)
-      .resize(512, 512, { fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 82 })
-      .toBuffer();
-    photoData = `data:image/webp;base64,${resized.toString("base64")}`;
-  } catch (err) {
-    console.error("[photo-upload] Image processing failed:", err);
-    redirect("/profile?photo=upload-failed");
   }
 
   await db
@@ -294,52 +273,13 @@ export default async function ProfilePage({
             <p className="text-xs uppercase tracking-[0.18em] text-accent">
               Photo
             </p>
-            <div className="mt-4 flex flex-col gap-5 sm:flex-row sm:items-center">
-              <div className="flex h-24 w-24 flex-none items-center justify-center overflow-hidden rounded-full bg-accent/15 font-display text-2xl text-accent">
-                {photoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={photoUrl}
-                    alt="Your profile photo"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  initials
-                )}
-              </div>
-              <div className="flex-1">
-                <form
-                  action={uploadPhotoAction}
-                  className="flex flex-col gap-3 sm:flex-row sm:items-center"
-                >
-                  <input
-                    type="file"
-                    name="photo"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
-                    required
-                    className="text-sm"
-                  />
-                  <button
-                    type="submit"
-                    className="inline-flex h-10 items-center justify-center rounded-full bg-foreground px-5 text-sm font-medium text-background transition-colors hover:bg-accent-hover"
-                  >
-                    Upload
-                  </button>
-                </form>
-                <p className="mt-2 text-xs text-muted">
-                  JPEG, PNG, WebP, or GIF. Up to 5 MB.
-                </p>
-                {photoUrl ? (
-                  <form action={removePhotoAction} className="mt-3">
-                    <button
-                      type="submit"
-                      className="text-sm text-muted hover:text-foreground transition-colors"
-                    >
-                      Remove current photo
-                    </button>
-                  </form>
-                ) : null}
-              </div>
+            <div className="mt-4">
+              <PhotoUploadSection
+                uploadAction={uploadPhotoAction}
+                removeAction={removePhotoAction}
+                currentPhotoUrl={photoUrl}
+                initials={initials}
+              />
             </div>
           </section>
 
