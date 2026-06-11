@@ -137,7 +137,8 @@ async function uploadPhotoAction(formData: FormData) {
   const buffer = Buffer.from(await file.arrayBuffer());
   try {
     await uploadPhoto(key, buffer, file.type);
-  } catch {
+  } catch (err) {
+    console.error("[photo-upload] R2 upload failed:", err);
     redirect("/profile?photo=upload-failed");
   }
 
