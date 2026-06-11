@@ -135,7 +135,11 @@ async function uploadPhotoAction(formData: FormData) {
   });
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  await uploadPhoto(key, buffer, file.type);
+  try {
+    await uploadPhoto(key, buffer, file.type);
+  } catch {
+    redirect("/profile?photo=upload-failed");
+  }
 
   await db
     .insert(profiles)
@@ -248,6 +252,10 @@ const PHOTO_BANNERS: Record<string, { tone: "ok" | "error"; message: string }> =
   "not-image": {
     tone: "error",
     message: "Only JPEG, PNG, WebP, or GIF images are accepted.",
+  },
+  "upload-failed": {
+    tone: "error",
+    message: "Upload failed — please try again or contact support.",
   },
 };
 
